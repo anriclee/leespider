@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 type ImageEngine struct {
@@ -18,12 +19,17 @@ func NewImageEngine() *ImageEngine {
 	}
 }
 
-func (i *ImageEngine) SubmitJob(job ImgJob) {
-	i.imgChan <- job
+func (i *ImageEngine) SubmitJob(job ImgJob, seconds int) {
+	select {
+	case i.imgChan <- job:
+	case <-time.After(time.Duration(seconds) * time.Second):
+		log.Println("timeout to submit job:", job)
+	}
 }
 
 func (i *ImageEngine) Run() {
 	for job := range i.imgChan {
+		time.Sleep(time.Second)
 		url := "http://116.113.96.251:8080" + job.ImageURL
 		log.Printf("begin to download pic:%v", url)
 		resp, err := http.Get(url)

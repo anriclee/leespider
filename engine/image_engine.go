@@ -37,28 +37,36 @@ func (i *ImageEngine) Run() {
 			log.Printf("err to download image:%+v", err)
 			continue
 		}
-		defer resp.Body.Close()
-		err = os.MkdirAll(job.Directory, os.ModePerm)
+		saveImage(job.Directory, job.FileName, job.ImageURL, resp)
+	}
+}
+
+func saveImage(directory, jobName, imageURL string, resp *http.Response) {
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
 		if err != nil {
-			log.Printf("create save directory failed:%+v", err)
-			continue
+			log.Printf("close body failed:%+v", err)
 		}
-		splits := strings.Split(job.ImageURL, "/")
-		if len(splits) == 0 {
-			continue
-		}
-		imageName := splits[len(splits)-1]
-		fd, err := os.Create(job.Directory + "/" + job.FileName + imageName)
-		if err != nil {
-			log.Printf("create file failed:%+v,filename:%v", err, imageName)
-			continue
-		}
-		defer fd.Close()
-		// Use io.Copy to just dump the response body to the file. This supports huge files
-		_, err = io.Copy(fd, resp.Body)
-		if err != nil {
-			log.Printf("copy file failed:%+v,filename:%v", err, imageName)
-			continue
-		}
+	}(resp.Body)
+	splits := strings.Split(imageURL, "/")
+	if len(splits) == 0 {
+		return
+	}
+	imageName := splits[len(splits)-1]
+	err := os.MkdirAll(directory, os.ModePerm)
+	if err != nil {
+		log.Printf("create save directory failed:%+v", err)
+		return
+	}
+	fd, err := os.Create(directory + "/" + jobName + imageName)
+	if err != nil {
+		log.Printf("create file failed:%+v,filename:%v", err, imageName)
+		return
+	}
+	defer fd.Close()
+	// Use io.Copy to just dump the response body to the file. This supports huge files
+	_, err = io.Copy(fd, resp.Body)
+	if err != nil {
+		log.Printf("copy file failed:%+v,filename:%v", err, imageName)
 	}
 }

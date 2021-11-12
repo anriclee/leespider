@@ -48,6 +48,7 @@ func (f *FetchCmd) Execute(ctx context.Context, flag *flag.FlagSet, args ...inte
 		log.Println("no outline file")
 		return subcommands.ExitFailure
 	}
+	log.Printf("fetch cmd config:%+v", f)
 	imgEngine := engine.NewImageEngine()
 	go imgEngine.Run()
 	e := engine.New(f.OutputDirectory, f.OutlinePath, f.FetchWorkersCnt, f.ParseResponseWorkersCnt, f.ParseURLWorkersCnt, f.FetchQPS, imgEngine)
